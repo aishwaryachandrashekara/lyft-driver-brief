@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trip+ — An unsolicited PM brief for Lyft Driver</title>
+<meta name="description" content="A driver decision-confidence feature for Lyft, with prototype, metrics, and 90-day rollout." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0E0E0E;
+    --ink-2: #2B2B2B;
+    --muted: #6B6B66;
+    --hairline: #E4E2DA;
+    --paper: #FAF8F2;
+    --white: #FFFFFF;
+    --pink: #EA0B8C;
+    --pink-soft: #FBE6F1;
+    --green: #11A861;
+    --green-soft: #E1F2E8;
+    --amber: #BA7517;
+    --amber-soft: #FAEEDA;
+    --serif: 'Instrument Serif', 'Times New Roman', serif;
+    --sans: 'Geist', system-ui, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--paper);
+    font-weight: 400;
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 28px; }
+
+  /* Header */
+  header {
+    padding: 56px 0 32px;
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 36px;
+  }
+  .meta-row .pink-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--pink);
+    margin-right: 8px; vertical-align: middle;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(44px, 7vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+  h1 em { font-style: italic; color: var(--pink); }
+  .subhead {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 620px;
+    line-height: 1.45;
+  }
+  .byline {
+    margin-top: 28px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .byline strong { color: var(--ink); font-weight: 500; }
+
+  /* Section */
+  section {
+    padding: 56px 0;
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--pink);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-tag::before {
+    content: ''; width: 24px; height: 0.5px;
+    background: var(--pink);
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(32px, 4.5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin-bottom: 22px;
+  }
+  h2 em { font-style: italic; color: var(--pink); }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-2);
+    max-width: 640px;
+    margin-bottom: 36px;
+  }
+  p { margin-bottom: 16px; }
+  p strong { font-weight: 500; }
+
+  /* Prototype */
+  .proto-stage {
+    background: var(--white);
+    border: 0.5px solid var(--hairline);
+    border-radius: 16px;
+    padding: 40px 28px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .proto-toggle {
+    display: inline-flex;
+    background: var(--paper);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 32px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .proto-toggle button {
+    background: transparent; border: none; padding: 8px 18px;
+    border-radius: 999px; cursor: pointer;
+    color: var(--muted); font-family: inherit; font-size: inherit;
+    letter-spacing: inherit; text-transform: inherit;
+    transition: all 0.2s;
+  }
+  .proto-toggle button.active {
+    background: var(--ink); color: var(--white);
+  }
+  .phones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    width: 100%;
+    max-width: 680px;
+  }
+  .phone-col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phone-label {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+  }
+  .phone-label.proposed { color: var(--pink); }
+  .phone {
+    width: 280px;
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px -16px rgba(14,14,14,0.18), 0 4px 12px -4px rgba(14,14,14,0.06);
+    font-family: var(--sans);
+    transition: transform 0.3s ease;
+  }
+  .phone:hover { transform: translateY(-3px); }
+  .phone-bar {
+    background: var(--ink); color: var(--white);
+    height: 28px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 16px;
+    font-size: 11px; font-family: var(--mono);
+  }
+  .phone-bar .dots { letter-spacing: 2px; }
+  .phone-map {
+    height: 100px;
+    background: linear-gradient(135deg, #DDE7DA 0%, #C8D7C0 100%);
+    background-image:
+      linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px);
+    background-size: 18px 18px;
+    position: relative;
+  }
+  .map-pin {
+    position: absolute; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--pink);
+    box-shadow: 0 0 0 5px rgba(234,11,140,0.18);
+    top: 30%; left: 30%;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(234,11,140,0.18); }
+    50% { box-shadow: 0 0 0 9px rgba(234,11,140,0.08); }
+  }
+  .map-end {
+    position: absolute; width: 9px; height: 9px;
+    background: var(--ink); top: 60%; left: 70%;
+    border-radius: 2px;
+  }
+  .map-line {
+    position: absolute; top: 36%; left: 33%;
+    width: 38%; height: 2px;
+    background-image: linear-gradient(90deg, var(--ink) 50%, transparent 50%);
+    background-size: 6px 2px;
+    transform: rotate(28deg); transform-origin: left;
+    opacity: 0.4;
+  }
+  .ride { padding: 16px; }
+  .price-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .price {
+    font-family: var(--serif); font-size: 32px;
+    font-weight: 400; line-height: 1; letter-spacing: -0.02em;
+  }
+  .price-meta { font-size: 12px; color: var(--muted); }
+  .meta-pills { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pill {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    background: var(--paper); color: var(--ink-2);
+  }
+  .accept {
+    background: var(--pink); color: var(--white);
+    border: none; border-radius: 999px;
+    padding: 12px; width: 100%;
+    font-family: var(--sans); font-size: 14px; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.02em;
+    transition: background 0.2s;
+  }
+  .accept:hover { background: #C50A78; }
+  .pass {
+    background: transparent; color: var(--ink-2);
+    border: 0.5px solid var(--hairline);
+    border-radius: 999px; padding: 11px;
+    flex: 1; font-family: var(--sans); font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-row .accept { flex: 2; }
+
+  /* Trip+ specific elements */
+  .strength-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--amber-soft);
+    color: #6E4308;
+    padding: 8px 12px; border-radius: 8px;
+    margin-bottom: 12px; font-size: 12px; font-weight: 500;
+  }
+  .stars { letter-spacing: 1.5px; color: var(--amber); }
+  .breakdown {
+    background: var(--paper); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 12px;
+  }
+  .bd-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; padding: 3px 0; color: var(--muted);
+  }
+  .bd-row strong { color: var(--ink); font-weight: 500; }
+  .pace-bar {
+    background: var(--paper); height: 32px; border-radius: 8px;
+    position: relative; overflow: hidden; margin-bottom: 10px;
+    display: flex; align-items: center; padding: 0 12px;
+    font-size: 11px; font-weight: 500;
+  }
+  .pace-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--green-soft); width: 72%; z-index: 0;
+  }
+  .pace-text { position: relative; z-index: 1; color: #155936; }
+  .signal {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; font-size: 12px; color: var(--ink-2);
+    border-top: 0.5px solid var(--hairline);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.good { background: var(--green); }
+  .dot.warn { background: var(--amber); }
+
+  /* Annotation arrows */
+  .annotations {
+    margin-top: 28px; max-width: 600px;
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); text-align: center;
+  }
+
+  /* Quote block */
+  .quotes {
+    background: var(--white);
+    border-left: 2px solid var(--pink);
+    padding: 24px 28px;
+    margin: 28px 0;
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.35;
+    font-style: italic;
+    color: var(--ink-2);
+  }
+  .quotes .src {
+    display: block; margin-top: 14px;
+    font-family: var(--mono); font-style: normal;
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--muted);
+  }
+
+  /* Two column layouts */
+  .two-col {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 32px; margin-top: 28px;
+  }
+  .col-card {
+    background: var(--white);
+    border: 0.5px solid var(--hairline);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .col-card h3 {
+    font-family: var(--sans); font-weight: 500;
+    font-size: 14px; margin-bottom: 14px;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .col-card h3 .num {
+    color: var(--pink); margin-right: 8px;
+    font-family: var(--mono);
+  }
+  .col-card ul { list-style: none; }
+  .col-card li {
+    padding: 8px 0; font-size: 14px;
+    color: var(--ink-2); line-height: 1.5;
+    display: flex; gap: 10px;
+  }
+  .col-card li::before {
+    content: '—'; color: var(--muted); flex-shrink: 0;
+  }
+
+  /* Solution detail */
+  .signal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 24px;
+  }
+  .signal-card {
+    background: var(--white);
+    border: 0.5px solid var(--hairline);
+    border-radius: 12px;
+    padding: 22px;
+    position: relative;
+  }
+  .signal-card .num {
+    font-family: var(--serif); font-size: 28px;
+    color: var(--pink); line-height: 1;
+    margin-bottom: 10px; display: block;
+  }
+  .signal-card h4 {
+    font-family: var(--sans); font-size: 15px;
+    font-weight: 500; margin-bottom: 8px;
+  }
+  .signal-card p {
+    font-size: 13px; color: var(--muted);
+    line-height: 1.5; margin: 0;
+  }
+
+  /* Metrics */
+  .metric-table {
+    background: var(--white);
+    border: 0.5px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .metric-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 90px;
+    padding: 16px 22px;
+    font-size: 14px;
+    align-items: center;
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-row .tier {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .metric-row .tier.north { color: var(--pink); }
+  .metric-row .tier.guard { color: var(--amber); }
+  .metric-row .name { color: var(--ink); }
+  .metric-row .name .desc {
+    display: block; color: var(--muted);
+    font-size: 12px; margin-top: 2px;
+  }
+  .metric-row .target {
+    text-align: right; font-family: var(--mono);
+    font-size: 12px; color: var(--ink-2);
+  }
+
+  /* Marketplace tradeoff */
+  .tradeoff-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: var(--white);
+    border: 0.5px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 24px;
+  }
+  .tradeoff-cell {
+    padding: 28px;
+    border-right: 0.5px solid var(--hairline);
+  }
+  .tradeoff-cell:last-child { border-right: none; }
+  .tradeoff-cell h4 {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 14px;
+  }
+  .tradeoff-cell.risk h4 { color: var(--pink); }
+  .tradeoff-cell.fix h4 { color: var(--green); }
+  .tradeoff-cell p { font-size: 14px; color: var(--ink-2); }
+
+  /* Timeline */
+  .timeline {
+    margin-top: 24px;
+  }
+  .phase {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 28px;
+    padding: 22px 0;
+    border-top: 0.5px solid var(--hairline);
+  }
+  .phase:last-child { border-bottom: 0.5px solid var(--hairline); }
+  .phase-num {
+    font-family: var(--serif);
+    font-size: 36px; color: var(--pink);
+    line-height: 1;
+  }
+  .phase-num .label {
+    display: block; font-family: var(--mono);
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-top: 8px;
+  }
+  .phase h3 {
+    font-family: var(--sans); font-weight: 500;
+    font-size: 17px; margin-bottom: 8px;
+  }
+  .phase p {
+    font-size: 14px; color: var(--ink-2); margin-bottom: 0;
+  }
+  .phase .gates {
+    margin-top: 10px; font-family: var(--mono);
+    font-size: 11px; color: var(--muted);
+  }
+
+  /* Footer */
+  footer {
+    padding: 64px 0 80px;
+    text-align: center;
+  }
+  footer .sig {
+    font-family: var(--serif);
+    font-size: 28px; font-style: italic;
+    color: var(--ink); margin-bottom: 12px;
+  }
+  footer .name {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  footer .links {
+    margin-top: 20px;
+    display: flex; gap: 18px; justify-content: center;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--muted);
+  }
+  footer .links a {
+    color: var(--ink); text-decoration: none;
+    border-bottom: 0.5px solid var(--ink); padding-bottom: 1px;
+  }
+  footer .links a:hover { color: var(--pink); border-color: var(--pink); }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .phones { grid-template-columns: 1fr; gap: 24px; }
+    .signal-grid { grid-template-columns: 1fr; }
+    .two-col, .tradeoff-grid { grid-template-columns: 1fr; }
+    .tradeoff-cell { border-right: none; border-bottom: 0.5px solid var(--hairline); }
+    .tradeoff-cell:last-child { border-bottom: none; }
+    .phase { grid-template-columns: 1fr; gap: 12px; }
+    .metric-row { grid-template-columns: 90px 1fr; }
+    .metric-row .target { grid-column: 1 / -1; text-align: left; padding-top: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="meta-row">
+      <span><span class="pink-dot"></span>Unsolicited PM brief</span>
+      <span>Lyft Driver · 2026</span>
+    </div>
+    <h1>Trip+ <em>—</em><br/>helping drivers say yes with confidence.</h1>
+    <p class="subhead">A driver gets a $14 ride request. Is that a good $14? Lyft already knows. The driver doesn't. This brief proposes a small, scoped change that closes that gap.</p>
+    <p class="byline">A prototype &amp; product brief by <strong>Aishwarya Chandrashekara</strong> · Applicant for Product Manager, Driver</p>
+  </header>
+
+  <section>
+    <div class="section-tag">01 The prototype</div>
+    <h2>Same request. <em>Two</em> information experiences.</h2>
+    <p class="lede">The right phone shows the proposed Trip+ surface: an at-a-glance trip-strength rating, an earnings breakdown, the driver's hourly pace, and a forward-looking signal about the drop-off zone — all data Lyft already produces internally.</p>
+
+    <div class="proto-stage">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone-label">Today</div>
+          <div class="phone">
+            <div class="phone-bar"><span>9:41</span><span class="dots">● ● ●</span></div>
+            <div class="phone-map">
+              <div class="map-line"></div>
+              <div class="map-pin"></div>
+              <div class="map-end"></div>
+            </div>
+            <div class="ride">
+              <div class="price-row">
+                <span class="price">$14.20</span>
+                <span class="price-meta">12 min trip</span>
+              </div>
+              <div class="meta-pills">
+                <span class="pill">5 min pickup</span>
+                <span class="pill">3.4 mi</span>
+              </div>
+              <button class="accept">Accept</button>
+            </div>
+          </div>
+        </div>
+        <div class="phone-col">
+          <div class="phone-label proposed">With Trip+</div>
+          <div class="phone">
+            <div class="phone-bar"><span>9:41</span><span class="dots">● ● ●</span></div>
+            <div class="phone-map">
+              <div class="map-line"></div>
+              <div class="map-pin"></div>
+              <div class="map-end"></div>
+            </div>
+            <div class="ride">
+              <div class="strength-row">
+                <span>Strong trip</span>
+                <span class="stars">★ ★ ★ ★ ☆</span>
+              </div>
+              <div class="price-row">
+                <span class="price">$14.20</span>
+                <span class="price-meta">12 min · 3.4 mi</span>
+              </div>
+              <div class="breakdown">
+                <div class="bd-row"><span>Base + miles</span><strong>$11.80</strong></div>
+                <div class="bd-row"><span>Time</span><strong>$1.70</strong></div>
+                <div class="bd-row"><span>Est. tip range</span><strong>$0.70 – $2.10</strong></div>
+              </div>
+              <div class="pace-bar">
+                <div class="pace-fill"></div>
+                <span class="pace-text">$32/hr pace · ahead of avg today</span>
+              </div>
+              <div class="signal"><span class="dot good"></span><span>Drop-off in busy zone — fast rematch likely</span></div>
+              <div class="signal"><span class="dot warn"></span><span>Pickup includes ~3 min walk to rider</span></div>
+              <div class="btn-row">
+                <button class="pass">Pass</button>
+                <button class="accept">Accept</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-tag">02 The problem</div>
+    <h2>A fare without context is a <em>guess</em>.</h2>
+    <p class="lede">Upfront Pay was a meaningful step toward transparency. But fare alone doesn't tell a driver whether a trip is good for the next hour of their life — and that's the unit drivers actually care about.</p>
+
+    <div class="quotes">
+      "I'm paid by the trip, not by the hour, and the app pretends those are the same thing."
+      <span class="src">— Pattern observed across r/lyftdrivers and App Store reviews</span>
+    </div>
+
+    <p>Drivers compensate by guessing, declining, or repositioning in ways the matching system doesn't anticipate. Three concrete patterns show up in the data Lyft already collects:</p>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3><span class="num">→</span>Where drivers feel blind</h3>
+        <ul>
+          <li>Drop-off location is opaque until mid-trip</li>
+          <li>Tip ranges are invisible despite predictable patterns</li>
+          <li>"Pickup time" doesn't capture the walk to the rider</li>
+          <li>No view of how this trip affects the hour</li>
+        </ul>
+      </div>
+      <div class="col-card">
+        <h3><span class="num">→</span>What it costs Lyft</h3>
+        <ul>
+          <li>Lower acceptance rate on objectively fine trips</li>
+          <li>Cancel-after-accept when reality differs from assumption</li>
+          <li>Drivers logging off after a "bad-feeling" stretch</li>
+          <li>Slower ETAs in zones drivers avoid</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-tag">03 The solution</div>
+    <h2>Three signals. <em>One</em> star rating.</h2>
+    <p class="lede">Trip+ adds three quantitative signals to every ride request, then summarizes them as a single trip-strength rating for at-a-glance decisions. Each signal uses data Lyft already produces — for pricing, for incentives, for matching — that simply isn't surfaced to the driver yet.</p>
+
+    <div class="signal-grid">
+      <div class="signal-card">
+        <span class="num">01</span>
+        <h4>Earnings breakdown</h4>
+        <p>Base, miles, time, and an estimated tip range from historical tip distributions on similar routes. Drivers stop guessing what's behind the number.</p>
+      </div>
+      <div class="signal-card">
+        <span class="num">02</span>
+        <h4>Hourly pace context</h4>
+        <p>Where this trip places the driver against their own day-so-far hourly average. Reframes a per-trip decision as a per-hour one.</p>
+      </div>
+      <div class="signal-card">
+        <span class="num">03</span>
+        <h4>Drop-off zone signal</h4>
+        <p>Forward-looking demand at the drop-off — already powering Driver Incentives. Surfacing it to the decision-maker closes the loop.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-tag">04 Success metrics</div>
+    <h2>What I'd ship with, <em>and</em> what I'd kill it for.</h2>
+    <p class="lede">A transparency feature can't be measured by satisfaction alone — it has to move marketplace metrics without breaking the rider side. Below: my proposed dashboard for the first 90 days.</p>
+
+    <div class="metric-table">
+      <div class="metric-row">
+        <span class="tier north">North star</span>
+        <span class="name">Driver hourly earnings consistency<span class="desc">Variance reduction in per-hour earnings across active sessions</span></span>
+        <span class="target">↓ variance</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier">Primary</span>
+        <span class="name">Acceptance rate on shown trips<span class="desc">Indicates Trip+ helps drivers say yes to the right ones</span></span>
+        <span class="target">+1.5–3 pp</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier">Primary</span>
+        <span class="name">Trips per online hour<span class="desc">Captures whether decisions are getting faster, not just better</span></span>
+        <span class="target">+2–4%</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier">Primary</span>
+        <span class="name">W4 / W12 driver retention<span class="desc">The downstream test — do drivers stay because their hour feels fair?</span></span>
+        <span class="target">+1–2 pp</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier guard">Guardrail</span>
+        <span class="name">Rider ETA at request time<span class="desc">Cannot degrade — riders are the other side of the marketplace</span></span>
+        <span class="target">≤ +0 sec</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier guard">Guardrail</span>
+        <span class="name">Cancel-after-accept rate<span class="desc">If transparency increases this, we've made the wrong trade</span></span>
+        <span class="target">≤ +0.5 pp</span>
+      </div>
+      <div class="metric-row">
+        <span class="tier guard">Guardrail</span>
+        <span class="name">Low-strength trip fulfillment<span class="desc">Trips rated 1–2★ must not become orphaned by drivers</span></span>
+        <span class="target">≥ baseline</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-tag">05 Two-sided trade-off</div>
+    <h2>The risk this feature creates, <em>and</em> the lever that fixes it.</h2>
+    <p class="lede">This is the part of the brief I'd want to discuss most. Transparency for drivers is a structural risk for the rider side — and the answer isn't to hide information, it's to redesign the underlying matching trade.</p>
+
+    <div class="tradeoff-grid">
+      <div class="tradeoff-cell risk">
+        <h4>The risk</h4>
+        <p>Drivers can now see "weak" trips and decline them at higher rates. Riders in low-density drop-off zones — often outer neighborhoods — wait longer and get more cancellations. Trip+ becomes a regressive feature.</p>
+      </div>
+      <div class="tradeoff-cell fix">
+        <h4>The mitigation</h4>
+        <p>Trip+ ships co-designed with the Driver Incentives and Marketplace teams. Low-strength trips trigger a small per-trip uplift; matching prefers drivers whose hourly pace is already strong (they have buffer). The feature becomes a marketplace lever, not just a UI change.</p>
+      </div>
+    </div>
+
+    <p style="margin-top: 28px;">This is also why I'd never ship the literal phrase "weak trip." The lowest visible tier becomes "Standard trip" — honest framing without anchoring decline behavior. Naming is part of the product.</p>
+  </section>
+
+  <section>
+    <div class="section-tag">06 Rollout</div>
+    <h2>90 days, three gates, <em>one</em> kill switch.</h2>
+    <p class="lede">A driver-facing change that touches earnings perception is high-trust and easy to break. The rollout below trades speed for confidence.</p>
+
+    <div class="timeline">
+      <div class="phase">
+        <div class="phase-num">01<span class="label">Weeks 1–4</span></div>
+        <div>
+          <h3>Closed beta · 200 NYC drivers</h3>
+          <p>Mixed-tenure cohort across boroughs. Weekly qualitative interviews paired with behavioral instrumentation. Goal: stress-test the trip-strength model and the language before any A/B exposure. Strength model validated against held-out historical trips.</p>
+          <p class="gates">Gate to phase 02: ≥70% of beta drivers report higher decision confidence; no degradation in their personal acceptance rate.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-num">02<span class="label">Weeks 5–8</span></div>
+        <div>
+          <h3>A/B at 5% of NYC drivers</h3>
+          <p>Driver-level randomization with rider-side outcomes measured at the zone level. Co-instrumented with Driver Incentives: low-strength routes get a calibrated bonus to keep fulfillment flat. Daily monitoring of all guardrail metrics.</p>
+          <p class="gates">Gate to phase 03: primary metrics moving in the right direction; zero guardrail breaches.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-num">03<span class="label">Weeks 9–12</span></div>
+        <div>
+          <h3>Expand to 25% NYC + Chicago</h3>
+          <p>Adds a second market to test generalization. Decision on full launch made at week 12 with ELT review. Kill switch — instant rollback to today's experience — remains live throughout.</p>
+          <p class="gates">Kill criteria: acceptance uplift &lt; 1.5 pp · cancel-after-accept up &gt; 0.5 pp · rider p50 ETA degraded &gt; 30 sec.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-tag">07 Why this, why now</div>
+    <h2>A small wedge with <em>compounding</em> returns.</h2>
+    <p>Driver experience is the largest TAM-limiting variable in rideshare, and every percent of acceptance and retention compounds because the marketplace is two-sided: more drivers shorten ETAs, which lifts rider conversion, which sustains earnings, which keeps drivers. Trip+ sits on top of data infrastructure that already exists — drop-off heat from incentives, tip estimates from pricing, hourly pace from earnings. That makes it cheap to test and high-leverage if it works.</p>
+    <p>It also fits a clear product principle Lyft has stated publicly: drivers should feel the platform is fair. Transparency in the moment of decision is the most direct expression of that principle I can think of.</p>
+  </section>
+
+  <footer>
+    <div class="sig">— Thanks for reading.</div>
+    <div class="name">AISHWARYA CHANDRASHEKARA · Product Manager candidate</div>
+    <div class="links">
+      <a href="aishwaryachandrashekara@gmail.com">email</a>
+      <a href="https://www.linkedin.com/in/aishwarya-chandrashekara/">linkedin</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // No-op for now; structure preserved for future toggling, animations, etc.
+  document.querySelectorAll('.phone').forEach(el => {
+    el.addEventListener('mouseenter', () => el.style.transform = 'translateY(-4px)');
+    el.addEventListener('mouseleave', () => el.style.transform = 'translateY(0)');
+  });
+</script>
+
+</body>
+</html>
